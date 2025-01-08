@@ -1,6 +1,16 @@
 # DataMergeExcel
 关于处理excel的一些快捷方式
 
+## 说明
+本项目基于 [Excelize](https://xuri.me/excelize/zh-hans/) 实现
+
+安装命令
+
+go get github.com/xuri/excelize
+
+如果您使用 [Go Modules](https://go.dev/blog/using-go-modules) 管理软件包，请使用下面的命令来安装最新版本。
+
+go get github.com/xuri/excelize/v2
 
 ### 表格要求
 
