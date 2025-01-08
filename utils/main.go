@@ -10,7 +10,7 @@ import (
 	"strconv"
 )
 
-// 多个数据表合并成一个表格
+// 多个数据表合并成一个表格 只能处理以数字为唯一索引的表格
 //
 // 1. 需要有个总表 就是原始数据表 里面应该包含分表的所有初始数据
 //
@@ -18,20 +18,30 @@ import (
 //
 // 3. 需要知道操作的工作表位置和表头长度
 //
-// dir 文件夹路径 all 	原始数据表格文件名带有.xlsx		 titleNum 表头长度
+// dir 文件夹路径 all 	原始数据表格文件名带有.xlsx		out导出文件路径		 titleNum 表头长度
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneExcel(dir, all, sheetName string, titleNum uint) {
+func MergeMuchExcelOneExcel(dir, all, sheetName, out string, titleNum uint) {
 	var allData map[string][]string
 	pathMap := map[string]bool{}
 	// 检查是否存在文件夹
-	_, err2 := os.Stat(dir)
-	if err2 != nil {
+	if exist, _ := common.PathExists(dir); !exist {
 		fmt.Println("系统找不到指定文件，请先确定excel文件夹是否存在，并重试")
 		return
 	}
+	if exist, _ := common.PathExists(out); !exist {
+		fmt.Println("系统找不到导出指定文件，请先确定导出文件路径是否存在")
+		return
+	}
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if info.IsDir() {
+			// 只允许遍历到dir目录下的文件，不允许深入到子目录
+			if path != dir {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if filepath.Ext(path) != ".xlsx" {
@@ -48,24 +58,22 @@ func MergeMuchExcelOneExcel(dir, all, sheetName string, titleNum uint) {
 		fmt.Println("并未发现需要合并的文件，请检查文件夹内是否有文件")
 		return
 	}
-	if _, ok := pathMap[dir+"\\"+all]; !ok {
+	path := dir + "\\" + all // 原始数据表路径
+	if _, ok := pathMap[path]; !ok {
 		fmt.Printf("未发现原始数据文件表，请检查文件夹内是否有--> %v 文件", all)
 		return
 	} else {
-		fmt.Println("原始数据文件表已找到")
 		// 首先确定主表数据 然后和分表数据匹配
-		data, err := common.GetExcelIndexData(dir+"\\"+all, sheetName, titleNum)
+		data, err := common.GetExcelIndexData(path, sheetName, titleNum)
 		if err != nil {
 			fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 			return
 		}
 		allData = data
-		delete(pathMap, dir+"\\"+all) // 删除原始数据 确保不再数据读取
+		delete(pathMap, path) // 删除原始数据 确保不再数据读取
 	}
-	fmt.Println("---开始读取分表数据文件表---")
 	for k := range pathMap {
-		fmt.Println(k)
-		data, err := common.GetExcelIndexData(dir+"\\"+all, sheetName, titleNum)
+		data, err := common.GetExcelIndexData(k, sheetName, titleNum)
 		if err != nil {
 			fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 			return
@@ -80,8 +88,6 @@ func MergeMuchExcelOneExcel(dir, all, sheetName string, titleNum uint) {
 			}
 		}
 	}
-	fmt.Println("---分表数据文件表读取完成---")
-	fmt.Println("---开始写入数据---")
 	// 排序  因为map 是无序的
 	var index []int
 	for k := range allData {
@@ -105,18 +111,18 @@ func MergeMuchExcelOneExcel(dir, all, sheetName string, titleNum uint) {
 		}
 		row := make([]string, 0)
 		row = append(row, allData[strconv.Itoa(item)]...)
-		if err := f.SetSheetRow("Sheet1", cell, &row); err != nil {
+		if err := f.SetSheetRow(sheetName, cell, &row); err != nil {
 			fmt.Println(err)
 			return
 		}
 	}
 	// 根据指定路径保存文件
-	if err := f.SaveAs("./整合数据.xlsx"); err != nil {
+	if err := f.SaveAs(out + "\\整合数据.xlsx"); err != nil {
 		fmt.Printf("文件保存失败，错误原因为: %v, 请重试", err.Error())
 		return
 	}
 	fmt.Println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-	fmt.Println("\n\n---写入数据完成---")
+	fmt.Println("\n---写入数据完成---")
 	fmt.Println("文件已经导出，请查看----> 整合数据.xlsx")
-	fmt.Println("\n\n↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
+	fmt.Println("\n↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
 }

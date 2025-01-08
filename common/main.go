@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/xuri/excelize/v2"
+	"os"
 )
 
 // 读取带有唯一索引的数据
@@ -149,4 +150,16 @@ func getExcelSheetData(filePaths, sheetName string) ([][]string, error) {
 
 	// 获取 sheetName 上所有单元格
 	return f.GetRows(sheetName)
+}
+
+// 判断路径是否存在
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
