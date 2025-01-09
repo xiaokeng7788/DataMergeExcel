@@ -69,7 +69,7 @@ func GetExcelIndexData(filePaths, sheetName string, titleNum uint) (res map[stri
 // sheetName 工作表名称 如果为空则默认读取第一个工作表
 //
 // titleNum 表头数量 表头不能为0 默认为3
-func GetExcelData12(filePaths, sheetName string, titleNum uint) (res map[string][][]string, err error) {
+func GetExcelRepeatData(filePaths, sheetName string, titleNum uint) (res map[string][][]string, err error) {
 	fmt.Println(fmt.Sprintf("---开始读取 %v 数据文件表---\n", filePaths))
 	rows, err := getExcelSheetData(filePaths, sheetName)
 	if err != nil {
@@ -162,4 +162,41 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// 创建一个Excel文件
+//
+// out 输出路径
+// sheetName 工作表名称
+// data 数据
+// titleNum 表头数量
+func CreateExcel(out, sheetName string, data [][]string, titleNum int) error {
+	// 创建一个新的Excel文件
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	// 将数据写入Excel文件
+	for k, item := range data {
+		cell, err := excelize.CoordinatesToCellName(1, k+titleNum) // 从第titleNum行开始写入数据
+		if err != nil {
+			return err
+		}
+		row := make([]string, 0)
+		row = item
+		if err := f.SetSheetRow(sheetName, cell, &row); err != nil {
+			return err
+		}
+	}
+	// 根据指定路径保存文件
+	if err := f.SaveAs(out + "\\整合数据.xlsx"); err != nil {
+		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
+	}
+	fmt.Println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
+	fmt.Println("\n---写入数据完成---")
+	fmt.Println("文件已经导出，请查看----> 整合数据.xlsx")
+	fmt.Println("\n↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
+	return nil
 }

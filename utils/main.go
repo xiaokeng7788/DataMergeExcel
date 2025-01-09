@@ -3,7 +3,6 @@ package utils
 import (
 	"DataMergeExcel/common"
 	"fmt"
-	"github.com/xuri/excelize/v2"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,12 +17,10 @@ import (
 //
 // 3. 需要知道操作的工作表位置和表头长度
 //
-// dir 文件夹路径 all 	原始数据表格文件名带有.xlsx		out导出文件路径		 titleNum 表头长度
+// dir 文件夹路径 all原始数据表格文件名带有.xlsx sheetName 工作表名		out导出文件路径		 titleNum 表头长度
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneExcel(dir, all, sheetName, out string, titleNum uint) {
-	var allData map[string][]string
-	pathMap := map[string]bool{}
+func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum uint) {
 	// 检查是否存在文件夹
 	if exist, _ := common.PathExists(dir); !exist {
 		fmt.Println("系统找不到指定文件，请先确定excel文件夹是否存在，并重试")
@@ -33,6 +30,8 @@ func MergeMuchExcelOneExcel(dir, all, sheetName, out string, titleNum uint) {
 		fmt.Println("系统找不到导出指定文件，请先确定导出文件路径是否存在")
 		return
 	}
+	var allData map[string][]string
+	pathMap := map[string]bool{}
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -95,34 +94,64 @@ func MergeMuchExcelOneExcel(dir, all, sheetName, out string, titleNum uint) {
 		index = append(index, atoi)
 	}
 	sort.Ints(index)
-	// 创建一个新的Excel文件
-	f := excelize.NewFile()
-	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Println(err)
-		}
-	}()
-	// 将数据写入Excel文件
-	for k, item := range index {
-		cell, err := excelize.CoordinatesToCellName(1, k+2) // 从第二行开始写入数据
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		row := make([]string, 0)
-		row = append(row, allData[strconv.Itoa(item)]...)
-		if err := f.SetSheetRow(sheetName, cell, &row); err != nil {
-			fmt.Println(err)
-			return
-		}
+	result := make([][]string, 0)
+	for _, item := range index {
+		result = append(result, allData[strconv.Itoa(item)])
 	}
-	// 根据指定路径保存文件
-	if err := f.SaveAs(out + "\\整合数据.xlsx"); err != nil {
-		fmt.Printf("文件保存失败，错误原因为: %v, 请重试", err.Error())
+	if err = common.CreateExcel(out, sheetName, result, int(titleNum)); err != nil {
+		fmt.Println("导出表格失败" + err.Error())
 		return
 	}
-	fmt.Println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-	fmt.Println("\n---写入数据完成---")
-	fmt.Println("文件已经导出，请查看----> 整合数据.xlsx")
-	fmt.Println("\n↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
+}
+
+// 两个表数据融合 可以处理非数字唯一索引的表格
+//
+// 可以是两个相互独立的表 只要有相同索引就行
+//
+// 把两个表拥有相同索引的数据进行融合，产生新表 新表数据就会是两个表拥有共同列的拼接到一起 自行分辨左右两表数据
+//
+// x y 需要处理的文件地址	sheetName 工作表名	out导出文件路径		 titleNum 表头长度
+//
+// 正确处理会得到一个不含表头的合并之后的数据表
+func MergeMuchExcelOneRepeatExcel(x, y, sheetName, out string, titleNum uint) {
+	// 检查是否存在文件夹
+	if exist, _ := common.PathExists(x); !exist {
+		fmt.Println("系统找不到指定文件->x，请先确定excel文件夹是否存在，并重试")
+		return
+	}
+	if exist, _ := common.PathExists(y); !exist {
+		fmt.Println("系统找不到指定文件->y，请先确定excel文件夹是否存在，并重试")
+		return
+	}
+	if exist, _ := common.PathExists(out); !exist {
+		fmt.Println("系统找不到指定文件->out，请先确定excel文件夹是否存在，并重试")
+		return
+	}
+	xData, err := common.GetExcelRepeatData(x, sheetName, titleNum)
+	if err != nil {
+		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
+		return
+	}
+	yData, err := common.GetExcelRepeatData(y, sheetName, titleNum)
+	if err != nil {
+		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
+		return
+	}
+	result := make([][]string, 0)
+	for k, v := range xData {
+		if _, ok := yData[k]; ok {
+			row := make([]string, 0)
+			for _, value := range v {
+				row = append(row, value...)
+			}
+			for _, value := range yData[k] {
+				row = append(row, value...)
+			}
+			result = append(result, row)
+		}
+	}
+	if err = common.CreateExcel(out, sheetName, result, int(titleNum)); err != nil {
+		fmt.Println("导出表格失败" + err.Error())
+		return
+	}
 }
