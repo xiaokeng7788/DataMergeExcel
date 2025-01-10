@@ -115,14 +115,6 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum uint)
 // 正确处理会得到一个不含表头的合并之后的数据表
 func MergeMuchExcelOneRepeatExcel(x, y, sheetName, out string, titleNum uint) {
 	// 检查是否存在文件夹
-	if exist, _ := common.PathExists(x); !exist {
-		fmt.Println("系统找不到指定文件->x，请先确定excel文件夹是否存在，并重试")
-		return
-	}
-	if exist, _ := common.PathExists(y); !exist {
-		fmt.Println("系统找不到指定文件->y，请先确定excel文件夹是否存在，并重试")
-		return
-	}
 	if exist, _ := common.PathExists(out); !exist {
 		fmt.Println("系统找不到指定文件->out，请先确定excel文件夹是否存在，并重试")
 		return

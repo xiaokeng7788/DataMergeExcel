@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"os"
+	"strconv"
 )
 
 // 读取带有唯一索引的数据
@@ -119,6 +120,9 @@ func GetExcelRepeatData(filePaths, sheetName string, titleNum uint) (res map[str
 //
 // sheetName 工作表名称
 func getExcelSheetData(filePaths, sheetName string) ([][]string, error) {
+	if exists, _ := PathExists(filePaths); !exists {
+		return nil, errors.New(filePaths + "文件不存在")
+	}
 	f, err := excelize.OpenFile(filePaths)
 	if err != nil {
 		return nil, err
@@ -171,6 +175,9 @@ func PathExists(path string) (bool, error) {
 // data 数据
 // titleNum 表头数量
 func CreateExcel(out, sheetName string, data [][]string, titleNum int) error {
+	if exists, _ := PathExists(out); !exists {
+		return errors.New(out + "路径不存在")
+	}
 	// 创建一个新的Excel文件
 	f := excelize.NewFile()
 	defer func() {
@@ -199,4 +206,68 @@ func CreateExcel(out, sheetName string, data [][]string, titleNum int) error {
 	fmt.Println("文件已经导出，请查看----> 整合数据.xlsx")
 	fmt.Println("\n↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
 	return nil
+}
+
+// 读取自定义的数据表格数据 指定表头必须是唯一键
+//
+// 给定一个数据表 指定以那一列为固定表头长度 指定以哪一个表头名称为索引构建数据
+func GetExcelAppointData(filePaths, sheetName, title string, titleNum int) (res map[string][]string, err error) {
+	rows, err := getExcelSheetData(filePaths, sheetName)
+	if err != nil {
+		return nil, err
+	}
+	if titleNum != 0 {
+		if len(rows) < titleNum {
+			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
+		}
+	} else {
+		titleNum = 3
+		if len(rows) < titleNum {
+			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
+		}
+	}
+	// 寻找表头中最大的一行值 并循环寻找表头
+	firstNum := len(rows[0])
+	appointNum := 0 // 指定表头的下标
+	flag := false   // 标记是否已经找到了表头
+	for i := 0; i < titleNum; i++ {
+		if len(rows[i]) > firstNum {
+			firstNum = len(rows[i])
+		}
+		if !flag {
+			for k, v := range rows[i] {
+				if v == title {
+					appointNum = k
+					flag = true
+				}
+			}
+		}
+	}
+	if !flag {
+		return nil, errors.New("表头不存在")
+	}
+	response := make(map[string][]string)
+	for i, row := range rows {
+		if len(row) == 0 {
+			continue
+		}
+		if i < titleNum {
+			continue
+		}
+		if len(row) < appointNum {
+			return nil, errors.New("第" + strconv.Itoa(i+1) + "行数据存在问题,指定表头长度比该行数据长度还要多")
+		}
+		if row[appointNum] == "" {
+			return nil, errors.New("第" + strconv.Itoa(i+1) + "行数据存在问题,指定表头该列数据不存在数据")
+		}
+		v := make([]string, firstNum)
+		for k, s := range row {
+			if k >= firstNum {
+				break
+			}
+			v[k] = s
+		}
+		response[row[appointNum]] = v
+	}
+	return response, nil
 }
