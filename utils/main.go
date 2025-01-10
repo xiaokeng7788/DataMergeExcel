@@ -20,7 +20,7 @@ import (
 // dir 文件夹路径 all原始数据表格文件名带有.xlsx sheetName 工作表名		out导出文件路径		 titleNum 表头长度
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum uint) {
+func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) {
 	// 检查是否存在文件夹
 	if exist, _ := common.PathExists(dir); !exist {
 		fmt.Println("系统找不到指定文件，请先确定excel文件夹是否存在，并重试")
@@ -113,7 +113,7 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum uint)
 // x y 需要处理的文件地址	sheetName 工作表名	out导出文件路径		 titleNum 表头长度
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneRepeatExcel(x, y, sheetName, out string, titleNum uint) {
+func MergeMuchExcelOneRepeatExcel(x, y, sheetName, out string, titleNum int) {
 	// 检查是否存在文件夹
 	if exist, _ := common.PathExists(out); !exist {
 		fmt.Println("系统找不到指定文件->out，请先确定excel文件夹是否存在，并重试")

@@ -5,113 +5,20 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"os"
-	"strconv"
 )
 
-// 读取带有唯一索引的数据
-//
-// 按照序号为key key行数据为value 存储到数组切片中
-//
-// filePaths excel文件路径
-//
-// sheetName 工作表名称 如果为空则默认读取第一个工作表
-//
-// titleNum 表头数量 表头不能为0 默认为3
-func GetExcelIndexData(filePaths, sheetName string, titleNum uint) (res map[string][]string, err error) {
-	fmt.Println(fmt.Sprintf("---开始读取 %v 数据文件表---\n", filePaths))
-	rows, err := getExcelSheetData(filePaths, sheetName)
-	if err != nil {
-		return nil, err
-	}
-	if titleNum != 0 {
-		if len(rows) < int(titleNum) {
-			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
-		}
-	} else {
-		titleNum = 3
-		if len(rows) < int(titleNum) {
-			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
-		}
-	}
-	// 寻找表头中最大的一行值
-	firstNum := len(rows[0])
-	for i := 0; i < int(titleNum); i++ {
-		if len(rows[i]) > firstNum {
-			firstNum = len(rows[i])
-		}
-	}
-	response := make(map[string][]string)
-	for i, row := range rows {
-		if len(row) == 0 {
-			continue
-		}
-		if i < int(titleNum) {
-			continue
-		}
-		v := make([]string, firstNum)
-		for k, s := range row {
-			if k >= firstNum {
-				break
-			}
-			v[k] = s
-		}
-		response[row[0]] = v
-	}
-	fmt.Printf("---%v 数据文件表读取完成---\n", filePaths)
-	return response, nil
-}
+// region 通用函数
 
-// 读取带有重复的数据
-//
-// 按照第一列为key key行数据为value 存储到数组二维切片中
-//
-// filePaths excel文件路径
-//
-// sheetName 工作表名称 如果为空则默认读取第一个工作表
-//
-// titleNum 表头数量 表头不能为0 默认为3
-func GetExcelRepeatData(filePaths, sheetName string, titleNum uint) (res map[string][][]string, err error) {
-	fmt.Println(fmt.Sprintf("---开始读取 %v 数据文件表---\n", filePaths))
-	rows, err := getExcelSheetData(filePaths, sheetName)
-	if err != nil {
-		return nil, err
+// 判断路径是否存在
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
 	}
-	if titleNum != 0 {
-		if len(rows) < int(titleNum) {
-			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
-		}
-	} else {
-		titleNum = 3
-		if len(rows) < int(titleNum) {
-			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
-		}
+	if os.IsNotExist(err) {
+		return false, nil
 	}
-	// 寻找表头中最大的一行值
-	firstNum := len(rows[0])
-	for i := 0; i < int(titleNum); i++ {
-		if len(rows[i]) > firstNum {
-			firstNum = len(rows[i])
-		}
-	}
-	response := make(map[string][][]string) // key 序号 value 数据
-	for i, row := range rows {
-		if len(row) == 0 {
-			continue
-		}
-		if i < int(titleNum) {
-			continue
-		}
-		v := make([]string, firstNum)
-		for k, s := range row {
-			if k >= firstNum {
-				break
-			}
-			v[k] = s
-		}
-		response[row[0]] = append(response[row[0]], v)
-	}
-	fmt.Printf("---%v 数据文件表读取完成---\n", filePaths)
-	return response, nil
+	return false, err
 }
 
 // 读取规定工作表的数据
@@ -119,7 +26,7 @@ func GetExcelRepeatData(filePaths, sheetName string, titleNum uint) (res map[str
 // filePaths excel文件路径
 //
 // sheetName 工作表名称
-func getExcelSheetData(filePaths, sheetName string) ([][]string, error) {
+func GetExcelSheetData(filePaths, sheetName string) ([][]string, error) {
 	if exists, _ := PathExists(filePaths); !exists {
 		return nil, errors.New(filePaths + "文件不存在")
 	}
@@ -154,18 +61,6 @@ func getExcelSheetData(filePaths, sheetName string) ([][]string, error) {
 
 	// 获取 sheetName 上所有单元格
 	return f.GetRows(sheetName)
-}
-
-// 判断路径是否存在
-func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }
 
 // 创建一个Excel文件
@@ -208,34 +103,32 @@ func CreateExcel(out, sheetName string, data [][]string, titleNum int) error {
 	return nil
 }
 
-// 读取自定义的数据表格数据 指定表头必须是唯一键
-//
-// 给定一个数据表 指定以那一列为固定表头长度 指定以哪一个表头名称为索引构建数据
-func GetExcelAppointData(filePaths, sheetName, title string, titleNum int) (res map[string][]string, err error) {
-	rows, err := getExcelSheetData(filePaths, sheetName)
-	if err != nil {
-		return nil, err
-	}
+// 从给定的数据表格中读取数据 找到表头的最大长度 以及返回指定表头的下标
+func GetExcelTitleInfo(data [][]string, title string, titleNum int) (max, index int, err error) {
 	if titleNum != 0 {
-		if len(rows) < titleNum {
-			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
+		if len(data) < titleNum {
+			return 0, 0, fmt.Errorf("表内数据最少为 %v 行", titleNum)
 		}
 	} else {
 		titleNum = 3
-		if len(rows) < titleNum {
-			return nil, fmt.Errorf("表内数据最少为 %v 行", titleNum)
+		if len(data) < titleNum {
+			return 0, 0, fmt.Errorf("表内数据最少为 %v 行", titleNum)
 		}
 	}
 	// 寻找表头中最大的一行值 并循环寻找表头
-	firstNum := len(rows[0])
+	firstNum := len(data[0])
 	appointNum := 0 // 指定表头的下标
 	flag := false   // 标记是否已经找到了表头
+	if title == "" {
+		// 如果给定的表头为空 则默认为第一行
+		flag = true
+	}
 	for i := 0; i < titleNum; i++ {
-		if len(rows[i]) > firstNum {
-			firstNum = len(rows[i])
+		if len(data[i]) > firstNum {
+			firstNum = len(data[i])
 		}
 		if !flag {
-			for k, v := range rows[i] {
+			for k, v := range data[i] {
 				if v == title {
 					appointNum = k
 					flag = true
@@ -244,30 +137,7 @@ func GetExcelAppointData(filePaths, sheetName, title string, titleNum int) (res 
 		}
 	}
 	if !flag {
-		return nil, errors.New("表头不存在")
+		return 0, 0, errors.New("表头不存在")
 	}
-	response := make(map[string][]string)
-	for i, row := range rows {
-		if len(row) == 0 {
-			continue
-		}
-		if i < titleNum {
-			continue
-		}
-		if len(row) < appointNum {
-			return nil, errors.New("第" + strconv.Itoa(i+1) + "行数据存在问题,指定表头长度比该行数据长度还要多")
-		}
-		if row[appointNum] == "" {
-			return nil, errors.New("第" + strconv.Itoa(i+1) + "行数据存在问题,指定表头该列数据不存在数据")
-		}
-		v := make([]string, firstNum)
-		for k, s := range row {
-			if k >= firstNum {
-				break
-			}
-			v[k] = s
-		}
-		response[row[appointNum]] = v
-	}
-	return response, nil
+	return firstNum, appointNum, nil
 }
