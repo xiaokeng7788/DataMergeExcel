@@ -12,6 +12,12 @@ go get github.com/xuri/excelize
 
 go get github.com/xuri/excelize/v2
 
+## Office自动下载激活地址
+
+**[下载地址](https://github.com/OdysseusYuan/LKY_OfficeTools/releases/tag/v1.3.0)**
+
+来源: [OdysseusYuan/LKY_OfficeTools](https://github.com/OdysseusYuan/LKY_OfficeTools)
+
 ### 表格要求
 
 ### 唯一索引表格
