@@ -10,5 +10,6 @@ func Init(r *gin.Engine) {
 	r.GET("/", func(c *gin.Context) {
 		c.String(200, "dev")
 	})
-	r.POST("/excel/file", controller.HandlerExcelFile)
+	api := r.Group("/api")
+	api.POST("excel/file", controller.HandlerExcelFile)
 }
