@@ -113,18 +113,18 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 // x y 需要处理的文件地址	sheetName 工作表名	out导出文件路径		 titleNum 表头长度
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneRepeatExcel(x, y, sheetName, out string, titleNum int) {
+func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum int) {
 	// 检查是否存在文件夹
 	if exist, _ := common.PathExists(out); !exist {
 		fmt.Println("系统找不到指定文件->out，请先确定excel文件夹是否存在，并重试")
 		return
 	}
-	xData, err := common.GetExcelRepeatData(x, sheetName, titleNum)
+	_, xData, err := common.GetExcelRepeatData(x, sheetName, title, titleNum)
 	if err != nil {
 		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 		return
 	}
-	yData, err := common.GetExcelRepeatData(y, sheetName, titleNum)
+	_, yData, err := common.GetExcelRepeatData(y, sheetName, title, titleNum)
 	if err != nil {
 		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 		return
@@ -143,6 +143,41 @@ func MergeMuchExcelOneRepeatExcel(x, y, sheetName, out string, titleNum int) {
 		}
 	}
 	if err = common.CreateExcel(out, sheetName, result, int(titleNum)); err != nil {
+		fmt.Println("导出表格失败" + err.Error())
+		return
+	}
+}
+
+// 将同一工作表中的具有相同索引的数据合并到一起
+//
+// 除索引表头列数据可以是任意类型 其他的数据类型只能是数字类型
+//
+// filePaths 需要处理的文件地址		sheetName 工作表名	title 以哪个标题为索引		out导出文件路径		 titleNum 表头长度
+func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) {
+	index, res, err := common.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
+	if err != nil {
+		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
+		return
+	}
+	result := make([][]string, 0)
+	for k, v := range res {
+		if len(v) > 1 {
+			r := make([]string, len(v[0]))
+			for _, s := range v {
+				for i, s1 := range s {
+					if i == index {
+						continue
+					}
+					r[i] = common.AddStringToInt(r[i], s1)
+				}
+			}
+			r[index] = k
+			result = append(result, r)
+		} else {
+			result = append(result, v...)
+		}
+	}
+	if err = common.CreateExcel(out, sheetName, result, titleNum); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"os"
+	"strconv"
 )
 
 // region 通用函数
@@ -140,4 +141,11 @@ func GetExcelTitleInfo(data [][]string, title string, titleNum int) (max, index 
 		return 0, 0, errors.New("表头不存在")
 	}
 	return firstNum, appointNum, nil
+}
+
+// 将字符串数字相加
+func AddStringToInt(a, b string) string {
+	aa, _ := strconv.Atoi(a)
+	bb, _ := strconv.Atoi(b)
+	return strconv.Itoa(aa + bb)
 }
