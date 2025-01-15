@@ -11,18 +11,34 @@ import (
 
 // 通用处理文件
 func HandlerExcelFile(c *gin.Context) {
-	// 接收上传的文件
-	file, err := c.FormFile("file")
+	// 解析 multipart form
+	err := c.Request.ParseMultipartForm(10 << 20) // 10 MB max memory
 	if err != nil {
 		c.JSON(utils.UnprocessableEntityHttpResponse(err.Error()))
 		return
 	}
-	ger, err := GetExcelSheetData(file, "")
-	if err != nil {
-		c.JSON(utils.AccessDeniedHttpResponse(err.Error()))
+
+	// 获取所有上传的文件
+	files, ok := c.Request.MultipartForm.File["file"]
+	if !ok || len(files) == 0 {
+		c.JSON(utils.UnprocessableEntityHttpResponse("没有文件上传"))
 		return
 	}
-	c.JSON(utils.OkHttpResponse(ger))
+	for _, file := range files {
+		fmt.Println(file.Size, file.Filename)
+	}
+	// 接收上传的文件
+	//file, err := c.FormFile("file")
+	//if err != nil {
+	//	c.JSON(utils.UnprocessableEntityHttpResponse(err.Error()))
+	//	return
+	//}
+	//ger, err := GetExcelSheetData(file, "")
+	//if err != nil {
+	//	c.JSON(utils.AccessDeniedHttpResponse(err.Error()))
+	//	return
+	//}
+	//c.JSON(utils.OkHttpResponse(ger))
 }
 
 // 将文件直接转换成可操作的数据格式

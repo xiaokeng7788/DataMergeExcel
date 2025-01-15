@@ -6,18 +6,19 @@
             </template>
 </el-table-column>
 </el-table> -->
-    <el-upload class="upload-demo" drag action="#" :show-file-list="false" :http-request="handleUpload"
-        :before-upload="handleChange">
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-        <div class="el-upload__text">
-            点此或者拖拽文件 <em>这里</em>
-        </div>
-        <template #tip>
-            <div class="el-upload__tip">
-                只支持10MB以下的excel文件
+     <el-upload class="upload-demo" multiple drag action="#" :show-file-list="false" :http-request="handleUpload"
+            :before-upload="handleChange">
+            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <div class="el-upload__text">
+                点此或者拖拽文件 <em>这里</em>
             </div>
-        </template>
-    </el-upload>
+            <template #tip>
+                <div class="el-upload__tip">
+                    只支持10MB以下的excel文件
+                </div>
+            </template>
+        </el-upload>
+        <el-button @click="up()" type="primary">上传</el-button>
 </template>
 
 <script setup>
@@ -27,6 +28,7 @@ import { UploadFilled } from '@element-plus/icons-vue'
 
 let tableData = ref([])
 let titleLength = ref(0)
+const filesData = ref([])
 
 const getExcelData = async () => {
     let m = []
@@ -48,9 +50,13 @@ const handleUpload = (rawFile) => {
 }
 
 const handleChange = async (file) => {
-    const data = await uploadFile(file)
-    console.log(data);
+    filesData.value.push(file)
 
+}
+
+const up = async () => {
+    const data = await uploadFile(filesData.value)
+    console.log(data);
 }
 
 onMounted(async () => {

@@ -7,9 +7,11 @@ export const getExcel = () => {
     return request.get('/excel')
 }
 
-export const uploadFile = (file) => {
+export const uploadFile = (files) => {
     const data = new FormData()
-    data.append("file", file)
+    files.forEach(item => {
+        data.append("file", item)
+    });
     return axios.post("/api/excel/file", data, {
         headers: {
             "Content-Type": "multipart/form-data",
