@@ -70,7 +70,7 @@ func GetExcelSheetData(filePaths, sheetName string) ([][]string, error) {
 // sheetName 工作表名称
 // data 数据
 // titleNum 表头数量
-func CreateExcel(out, sheetName string, data [][]string, titleNum int) error {
+func CreateExcel(out, outFileName, sheetName string, data [][]string, titleNum int) error {
 	if exists, _ := PathExists(out); !exists {
 		return errors.New(out + "路径不存在")
 	}
@@ -94,12 +94,12 @@ func CreateExcel(out, sheetName string, data [][]string, titleNum int) error {
 		}
 	}
 	// 根据指定路径保存文件
-	if err := f.SaveAs(out + "\\整合数据.xlsx"); err != nil {
+	if err := f.SaveAs(out + "\\" + outFileName); err != nil {
 		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
 	}
 	fmt.Println("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
 	fmt.Println("\n---写入数据完成---")
-	fmt.Println("文件已经导出，请查看----> 整合数据.xlsx")
+	fmt.Println("文件已经导出，请查看----> " + outFileName + ".xlsx")
 	fmt.Println("\n↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑")
 	return nil
 }

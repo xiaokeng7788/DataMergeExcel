@@ -98,7 +98,7 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 	for _, item := range index {
 		result = append(result, allData[strconv.Itoa(item)])
 	}
-	if err = common.CreateExcel(out, sheetName, result, int(titleNum)); err != nil {
+	if err = common.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
 	}
@@ -142,13 +142,13 @@ func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum i
 			result = append(result, row)
 		}
 	}
-	if err = common.CreateExcel(out, sheetName, result, int(titleNum)); err != nil {
+	if err = common.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
 	}
 }
 
-// 将同一工作表中的具有相同索引的数据合并到一起
+// 将同一工作表中的具有相同索引的数据合并到一起 指的是表格中数值类型相加
 //
 // 除索引表头列数据可以是任意类型 其他的数据类型只能是数字类型
 //
@@ -177,8 +177,23 @@ func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) {
 			result = append(result, v...)
 		}
 	}
-	if err = common.CreateExcel(out, sheetName, result, titleNum); err != nil {
+	if err = common.CreateExcel(out, "整合数据.xlsx", sheetName, result, titleNum); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
+	}
+}
+
+// 将同一工作表中的按照固定列拆分后 将相同列名的数据单独合并成一个表格
+func MergeSameDataIntoNewTable(filePaths, sheetName, title, out string, titleNum int) {
+	_, res, err := common.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
+	if err != nil {
+		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
+		return
+	}
+	for s, v := range res {
+		if err = common.CreateExcel(out, s+".xlsx", sheetName, v, titleNum); err != nil {
+			fmt.Println("导出表格失败" + err.Error())
+			return
+		}
 	}
 }
