@@ -1,4 +1,4 @@
-module DataMergeExcel
+module github.com/xiaokeng7788/DataMergeExcel
 
 go 1.23
 
