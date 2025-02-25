@@ -2,7 +2,7 @@ package dataMergeExcel
 
 import (
 	"fmt"
-	"github.com/xiaokeng7788/DataMergeExcel/common"
+	"github.com/xiaokeng7788/DataMergeExcel/excelUtils"
 	"os"
 	"path/filepath"
 	"sort"
@@ -22,11 +22,11 @@ import (
 // 正确处理会得到一个不含表头的合并之后的数据表
 func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) {
 	// 检查是否存在文件夹
-	if exist, _ := common.PathExists(dir); !exist {
+	if exist, _ := excelUtils.PathExists(dir); !exist {
 		fmt.Println("系统找不到指定文件，请先确定excel文件夹是否存在，并重试")
 		return
 	}
-	if exist, _ := common.PathExists(out); !exist {
+	if exist, _ := excelUtils.PathExists(out); !exist {
 		fmt.Println("系统找不到导出指定文件，请先确定导出文件路径是否存在")
 		return
 	}
@@ -63,7 +63,7 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 		return
 	} else {
 		// 首先确定主表数据 然后和分表数据匹配
-		data, err := common.GetExcelIndexData(path, sheetName, titleNum)
+		data, err := excelUtils.GetExcelIndexData(path, sheetName, titleNum)
 		if err != nil {
 			fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 			return
@@ -72,7 +72,7 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 		delete(pathMap, path) // 删除原始数据 确保不再数据读取
 	}
 	for k := range pathMap {
-		data, err := common.GetExcelIndexData(k, sheetName, titleNum)
+		data, err := excelUtils.GetExcelIndexData(k, sheetName, titleNum)
 		if err != nil {
 			fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 			return
@@ -98,7 +98,7 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 	for _, item := range index {
 		result = append(result, allData[strconv.Itoa(item)])
 	}
-	if err = common.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
+	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
 	}
@@ -115,16 +115,16 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 // 正确处理会得到一个不含表头的合并之后的数据表
 func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum int) {
 	// 检查是否存在文件夹
-	if exist, _ := common.PathExists(out); !exist {
+	if exist, _ := excelUtils.PathExists(out); !exist {
 		fmt.Println("系统找不到指定文件->out，请先确定excel文件夹是否存在，并重试")
 		return
 	}
-	_, xData, err := common.GetExcelRepeatData(x, sheetName, title, titleNum)
+	_, xData, err := excelUtils.GetExcelRepeatData(x, sheetName, title, titleNum)
 	if err != nil {
 		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 		return
 	}
-	_, yData, err := common.GetExcelRepeatData(y, sheetName, title, titleNum)
+	_, yData, err := excelUtils.GetExcelRepeatData(y, sheetName, title, titleNum)
 	if err != nil {
 		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 		return
@@ -142,7 +142,7 @@ func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum i
 			result = append(result, row)
 		}
 	}
-	if err = common.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
+	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
 	}
@@ -154,7 +154,7 @@ func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum i
 //
 // filePaths 需要处理的文件地址		sheetName 工作表名	title 以哪个标题为索引		out导出文件路径		 titleNum 表头长度
 func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) {
-	index, res, err := common.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
+	index, res, err := excelUtils.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
 	if err != nil {
 		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 		return
@@ -168,7 +168,7 @@ func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) {
 					if i == index {
 						continue
 					}
-					r[i] = common.AddStringToInt(r[i], s1)
+					r[i] = excelUtils.AddStringToInt(r[i], s1)
 				}
 			}
 			r[index] = k
@@ -177,7 +177,7 @@ func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) {
 			result = append(result, v...)
 		}
 	}
-	if err = common.CreateExcel(out, "整合数据.xlsx", sheetName, result, titleNum); err != nil {
+	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, titleNum); err != nil {
 		fmt.Println("导出表格失败" + err.Error())
 		return
 	}
@@ -185,13 +185,13 @@ func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) {
 
 // 将同一工作表中的按照固定列拆分后 将相同列名的数据单独合并成一个表格
 func MergeSameDataIntoNewTable(filePaths, sheetName, title, out string, titleNum int) {
-	_, res, err := common.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
+	_, res, err := excelUtils.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
 	if err != nil {
 		fmt.Printf("表格数据处理错误，错误原因为: %v\n", err.Error())
 		return
 	}
 	for s, v := range res {
-		if err = common.CreateExcel(out, s+".xlsx", sheetName, v, titleNum); err != nil {
+		if err = excelUtils.CreateExcel(out, s+".xlsx", sheetName, v, titleNum); err != nil {
 			fmt.Println("导出表格失败" + err.Error())
 			return
 		}
