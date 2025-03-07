@@ -89,6 +89,63 @@ func CreateExcel(out, outFileName, sheetName string, data [][]string, titleNum i
 	return nil
 }
 
+// 创建一个Excel文件 流式写入 适合大数据量写入
+//
+// out 输出路径
+// outFileName 输出文件名
+// sheetName 工作表名称
+// data 数据
+// titleNum 表头数量
+func FlushCreateExcel(out, outFileName, sheetName string, data [][]string, titleNum int) error {
+	if exists, _ := PathExists(out); !exists {
+		return errors.New(out + "路径不存在")
+	}
+	// 创建一个新的Excel文件
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	err := SheetNameExists(f, sheetName, true)
+	if err != nil {
+		return err
+	}
+
+	// 创建一个流式写入器
+	streamWriter, err := f.NewStreamWriter(sheetName)
+	if err != nil {
+		return err
+	}
+
+	// 写入数据
+	for rowIndex, item := range data {
+		cell, err := excelize.CoordinatesToCellName(1, rowIndex+titleNum)
+		if err != nil {
+			return err
+		}
+		// 将 []string 转换为 []interface{}
+		interfaceItem := make([]interface{}, len(item))
+		for i, v := range item {
+			interfaceItem[i] = v
+		}
+		if err := streamWriter.SetRow(cell, interfaceItem); err != nil {
+			return err
+		}
+	}
+
+	// 关闭流式写入器
+	if err := streamWriter.Flush(); err != nil {
+		return err
+	}
+
+	// 根据指定路径保存文件
+	if err := f.SaveAs(out + "\\" + outFileName); err != nil {
+		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
+	}
+	return nil
+}
+
 // 创建一个Excel文件 包含多个工作表
 //
 // out 输出路径
