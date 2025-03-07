@@ -18,10 +18,10 @@ import (
 //
 // 3. 需要知道操作的工作表位置和表头长度
 //
-// dir 文件夹路径 all原始数据表格文件名带有.xlsx sheetName 工作表名		out导出文件路径		 titleNum 表头长度
+// dir 文件夹路径 all原始数据表格文件名带有.xlsx sheetName 工作表名		out导出文件路径		 titleNum 表头长度 flush 是否使用流式写入
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) error {
+func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int, flush bool) error {
 	// 检查是否存在文件夹
 	if exist, _ := excelUtils.PathExists(dir); !exist {
 		return errors.New("系统找不到指定文件，请先确定excel文件夹是否存在，并重试")
@@ -92,7 +92,7 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 	for _, item := range index {
 		result = append(result, allData[strconv.Itoa(item)])
 	}
-	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
+	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum), flush); err != nil {
 		return errors.New("导出表格失败" + err.Error())
 	}
 	return nil
@@ -104,10 +104,10 @@ func MergeMuchExcelOneIndexExcel(dir, all, sheetName, out string, titleNum int) 
 //
 // 把两个表拥有相同索引的数据进行融合，产生新表 新表数据就会是两个表拥有共同列的拼接到一起 自行分辨左右两表数据
 //
-// x y 需要处理的文件地址	sheetName 工作表名	out导出文件路径		 titleNum 表头长度
+// x y 需要处理的文件地址	sheetName 工作表名	out导出文件路径		 titleNum 表头长度  flush 是否使用流式写入
 //
 // 正确处理会得到一个不含表头的合并之后的数据表
-func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum int) error {
+func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum int, flush bool) error {
 	// 检查是否存在文件夹
 	if exist, _ := excelUtils.PathExists(out); !exist {
 		return errors.New("系统找不到指定文件->out，请先确定excel文件夹是否存在，并重试")
@@ -133,7 +133,7 @@ func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum i
 			result = append(result, row)
 		}
 	}
-	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum)); err != nil {
+	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, int(titleNum), flush); err != nil {
 		return fmt.Errorf("导出表格失败" + err.Error())
 	}
 	return nil
@@ -143,8 +143,8 @@ func MergeMuchExcelOneRepeatExcel(x, y, sheetName, title, out string, titleNum i
 //
 // 除索引表头列数据可以是任意类型 其他的数据类型只能是数字类型
 //
-// filePaths 需要处理的文件地址		sheetName 工作表名	title 以哪个标题为索引		out导出文件路径		 titleNum 表头长度
-func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) error {
+// filePaths 需要处理的文件地址		sheetName 工作表名	title 以哪个标题为索引		out导出文件路径		 titleNum 表头长度 flush 是否使用流式写入
+func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int, flush bool) error {
 	index, res, err := excelUtils.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
 	if err != nil {
 		return fmt.Errorf("表格数据处理错误，错误原因为: %v\n", err.Error())
@@ -167,20 +167,20 @@ func MergeWorkSheetData(filePaths, sheetName, title, out string, titleNum int) e
 			result = append(result, v...)
 		}
 	}
-	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, titleNum); err != nil {
+	if err = excelUtils.CreateExcel(out, "整合数据.xlsx", sheetName, result, titleNum, flush); err != nil {
 		return errors.New("导出表格失败" + err.Error())
 	}
 	return nil
 }
 
-// 将同一工作表中的按照固定列拆分后 将相同列名的数据单独合并成一个表格
-func MergeSameDataIntoNewTable(filePaths, sheetName, title, out string, titleNum int) error {
+// 将同一工作表中的按照固定列拆分后 将相同列名的数据单独合并成一个表格 flush 是否使用流式写入
+func MergeSameDataIntoNewTable(filePaths, sheetName, title, out string, titleNum int, flush bool) error {
 	_, res, err := excelUtils.GetExcelRepeatData(filePaths, sheetName, title, titleNum)
 	if err != nil {
 		return fmt.Errorf("表格数据处理错误，错误原因为: %v\n", err.Error())
 	}
 	for s, v := range res {
-		if err = excelUtils.CreateExcel(out, s+".xlsx", sheetName, v, titleNum); err != nil {
+		if err = excelUtils.CreateExcel(out, s+".xlsx", sheetName, v, titleNum, flush); err != nil {
 			return errors.New("导出表格失败" + err.Error())
 		}
 	}

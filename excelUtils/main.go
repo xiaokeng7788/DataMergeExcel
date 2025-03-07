@@ -35,18 +35,18 @@ func GetExcelSheetData(filePaths, sheetName string) ([][]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			return
-		}
-	}()
+
 	// 获取所有表格名称
 	err = SheetNameExists(f, sheetName, false)
 	if err != nil {
 		return nil, err
 	}
 	// 获取 sheetName 上所有单元格
-	return f.GetRows(sheetName)
+	rows, err := f.GetRows(sheetName)
+	if err := f.Close(); err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 // 创建一个Excel文件
@@ -55,93 +55,68 @@ func GetExcelSheetData(filePaths, sheetName string) ([][]string, error) {
 // sheetName 工作表名称
 // data 数据
 // titleNum 表头数量
-func CreateExcel(out, outFileName, sheetName string, data [][]string, titleNum int) error {
+// flush 是否使用流式写入
+func CreateExcel(out, outFileName, sheetName string, data [][]string, titleNum int, flush bool) error {
 	if exists, _ := PathExists(out); !exists {
 		return errors.New(out + "路径不存在")
 	}
 	// 创建一个新的Excel文件
 	f := excelize.NewFile()
-	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Println(err)
-		}
-	}()
+
+	// 判断工作表是否存在
 	err := SheetNameExists(f, sheetName, true)
 	if err != nil {
 		return err
 	}
-	// 将数据写入Excel文件
-	for k, item := range data {
-		cell, err := excelize.CoordinatesToCellName(1, k+titleNum) // 从第titleNum行开始写入数据
+	if flush {
+		// 使用流式写入
+		// 创建一个流式写入器
+		streamWriter, err := f.NewStreamWriter(sheetName)
 		if err != nil {
 			return err
 		}
-		row := make([]string, 0)
-		row = item
-		if err := f.SetSheetRow(sheetName, cell, &row); err != nil {
+
+		// 写入数据
+		for rowIndex, item := range data {
+			cell, err := excelize.CoordinatesToCellName(1, rowIndex+titleNum)
+			if err != nil {
+				return err
+			}
+			interfaceItem := make([]interface{}, len(item))
+			for i, v := range item {
+				interfaceItem[i] = v
+			}
+			if err := streamWriter.SetRow(cell, interfaceItem); err != nil {
+				return err
+			}
+		}
+
+		// 关闭流式写入器
+		if err := streamWriter.Flush(); err != nil {
 			return err
 		}
-	}
-	// 根据指定路径保存文件
-	if err := f.SaveAs(out + "\\" + outFileName); err != nil {
-		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
-	}
-	return nil
-}
-
-// 创建一个Excel文件 流式写入 适合大数据量写入
-//
-// out 输出路径
-// outFileName 输出文件名
-// sheetName 工作表名称
-// data 数据
-// titleNum 表头数量
-func FlushCreateExcel(out, outFileName, sheetName string, data [][]string, titleNum int) error {
-	if exists, _ := PathExists(out); !exists {
-		return errors.New(out + "路径不存在")
-	}
-	// 创建一个新的Excel文件
-	f := excelize.NewFile()
-	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Println(err)
+	} else {
+		// 使用普通写入
+		// 将数据写入Excel文件
+		for rowIndex, item := range data {
+			cell, err := excelize.CoordinatesToCellName(1, rowIndex+titleNum) // 从第titleNum行开始写入数据
+			if err != nil {
+				return err
+			}
+			row := make([]string, 0)
+			row = item
+			if err := f.SetSheetRow(sheetName, cell, &row); err != nil {
+				return err
+			}
 		}
-	}()
-	err := SheetNameExists(f, sheetName, true)
-	if err != nil {
-		return err
-	}
-
-	// 创建一个流式写入器
-	streamWriter, err := f.NewStreamWriter(sheetName)
-	if err != nil {
-		return err
-	}
-
-	// 写入数据
-	for rowIndex, item := range data {
-		cell, err := excelize.CoordinatesToCellName(1, rowIndex+titleNum)
-		if err != nil {
-			return err
-		}
-		// 将 []string 转换为 []interface{}
-		interfaceItem := make([]interface{}, len(item))
-		for i, v := range item {
-			interfaceItem[i] = v
-		}
-		if err := streamWriter.SetRow(cell, interfaceItem); err != nil {
-			return err
-		}
-	}
-
-	// 关闭流式写入器
-	if err := streamWriter.Flush(); err != nil {
-		return err
 	}
 
 	// 根据指定路径保存文件
 	if err := f.SaveAs(out + "\\" + outFileName); err != nil {
 		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
+	}
+	if err := f.Close(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -158,11 +133,7 @@ func BatchCreateExcel(out, outFileName string, sheetName []string, data map[stri
 	}
 	// 创建一个新的Excel文件
 	f := excelize.NewFile()
-	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Println(err)
-		}
-	}()
+
 	if len(sheetName) != len(data) {
 		return errors.New("指定表头和生成数据长度不一致")
 	}
@@ -203,6 +174,9 @@ func BatchCreateExcel(out, outFileName string, sheetName []string, data map[stri
 	// 根据指定路径保存文件
 	if err := f.SaveAs(out + "\\" + outFileName); err != nil {
 		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
+	}
+	if err := f.Close(); err != nil {
+		fmt.Println(err)
 	}
 	return nil
 }

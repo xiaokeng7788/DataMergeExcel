@@ -34,11 +34,11 @@ func TestCreatedExcel(t *testing.T) {
 
 func TestCreated(t *testing.T) {
 	res := [][]string{}
-	for i := 0; i < 999999; i++ {
+	for i := 0; i < 99; i++ {
 		res = append(res, []string{"直播ID", "用户ID", "用户姓名", "观看次数", "观看时长(秒)", "入会时间", "退会时间"})
 	}
-	err := excelUtils.FlushCreateExcel(out, outFileName, "Sheet1", res, titleNum)
-	//err := excelUtils.CreateExcel(out, outFileName, "Sheet1", res, titleNum)
+	//err := excelUtils.FlushCreateExcel(out, outFileName, "Sheet1", res, titleNum)
+	err := excelUtils.CreateExcel(out, outFileName, "Sheet1", res, titleNum, true)
 	if err != nil {
 		t.Error(err)
 	}
