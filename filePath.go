@@ -1,13 +1,15 @@
 package dataMergeExcel
 
 import (
+	"errors"
+	"fmt"
 	"github.com/xuri/excelize/v2"
 	"os"
 )
 
 // 判断路径是否存在
 func PathExists(path string) bool {
-	_, err := os.Stat(path) //os.Stat获取文件信息
+	_, err := os.Stat(path)
 	if err != nil {
 		return os.IsExist(err)
 	}
@@ -26,4 +28,19 @@ func OpenExcelFile(filePath string) (*Excel, error) {
 	return &Excel{File: file}, nil
 }
 
-// 根据指定的工作簿找到对应的数
+// 创建指定的文件路径excel表格文件
+func (e *Excel) CreatedExcelPath() error {
+	if e.File == nil {
+		return errors.New("暂无可执行文件")
+	}
+	if !PathExists(e.OutPath) {
+		return os.ErrNotExist
+	}
+	if err := e.File.SaveAs(e.OutPath + "\\" + e.OutFile); err != nil {
+		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
+	}
+	if err := e.File.Close(); err != nil {
+		return err
+	}
+	return nil
+}

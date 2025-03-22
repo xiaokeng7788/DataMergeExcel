@@ -212,7 +212,9 @@ func (e *Excel) IsExitSheetName(force bool) error {
 		return fmt.Errorf("该文件中不存在工作表: %v", e.SheetName)
 	}
 	// 默认强制创建的工作簿名称为Sheet1
-	e.SheetName = DefaultSheetName
+	if e.SheetName == "" {
+		e.SheetName = DefaultSheetName
+	}
 	_, err := e.File.NewSheet(e.SheetName)
 	if err != nil {
 		return err
@@ -221,21 +223,16 @@ func (e *Excel) IsExitSheetName(force bool) error {
 }
 
 // 创建一个新的Excel文件
-func (e *Excel) NewCreateExcel() error {
+func NewCreateExcel() *Excel {
 	// 创建一个新的Excel文件
-	f := excelize.NewFile()
-	e.File = f
-	return nil
+	file := excelize.NewFile()
+	return &Excel{File: file}
 }
 
-// 读取规定工作表的数据
-//
-// filePaths excel文件路径
-//
-// sheetName 工作表名称
+// 读取工作表的数据
 func (e *Excel) GetExcelSheetData() ([][]string, error) {
 	if e.File == nil {
-		return nil, errors.New("暂无可执行操作")
+		return nil, errors.New("暂无可执行文件")
 	}
 	// 获取所有表格名称
 	err := e.IsExitSheetName(false)
@@ -248,4 +245,53 @@ func (e *Excel) GetExcelSheetData() ([][]string, error) {
 		return nil, err
 	}
 	return rows, nil
+}
+
+// 将数据写入表格
+func (e *Excel) WriteExcelSheet(data [][]string) error {
+	if e.File == nil {
+		return errors.New("暂无可执行文件")
+	}
+	for rowIndex, item := range data {
+		cell, err := excelize.CoordinatesToCellName(1, rowIndex+e.TitleNum) // 后续表头也需要写入
+		if err != nil {
+			return err
+		}
+		row := make([]string, 0)
+		row = item
+		if err := e.File.SetSheetRow(e.SheetName, cell, &row); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// 将数据流式写入表格
+func (e *Excel) WriteExcelSheetStream(data [][]string) error {
+	if e.File == nil {
+		return errors.New("暂无可执行文件")
+	}
+	// 创建一个流式写入器
+	streamWriter, err := e.File.NewStreamWriter(e.SheetName)
+	if err != nil {
+		return err
+	}
+	for rowIndex, item := range data {
+		cell, err := excelize.CoordinatesToCellName(1, rowIndex)
+		if err != nil {
+			return err
+		}
+		interfaceItem := make([]interface{}, len(item))
+		for i, v := range item {
+			interfaceItem[i] = v
+		}
+		if err := streamWriter.SetRow(cell, interfaceItem); err != nil {
+			return err
+		}
+	}
+	// 关闭流式写入器
+	if err := streamWriter.Flush(); err != nil {
+		return err
+	}
+	return nil
 }
