@@ -2,44 +2,29 @@ package dataMergeExcel
 
 import (
 	"fmt"
-	"github.com/xiaokeng7788/DataMergeExcel/excelUtils"
 	"testing"
 )
 
-const dir string = "D:\\桌面\\test.xlsx"
-const sheetName string = "244"
-const title string = "通话id"
+const dir string = "D:\\桌面\\main\\2024年服务总次数.xlsx"
+const sheetName string = "Sheet3"
+const title string = "1"
 const titleNum int = 1
 const out string = "D:\\桌面\\watch"
 const outFileName string = "out.xlsx"
 
-func Test(t *testing.T) {
-	res, err := excelUtils.GetExcelSheetData(dir, sheetName)
+func TestMainTest(t *testing.T) {
+	excelFile, err := OpenExcelFile(dir)
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println(res)
-}
-
-func TestCreatedExcel(t *testing.T) {
-	res := map[string][][]string{}
-	res["244"] = [][]string{[]string{"直播ID", "用户ID", "用户姓名", "观看次数", "观看时长(秒)", "入会时间", "退会时间"}}
-	res["255"] = [][]string{[]string{"直播ID1", "用户ID1", "用户姓名1", "观看次数1", "观看时长(秒)1", "入会时间1", "退会时间1"}}
-	result := []string{"244", "255"}
-	err := excelUtils.BatchCreateExcel(out, outFileName, result, res, titleNum)
+	excelFile.SheetName = sheetName
+	err = excelFile.IsExitSheetName(false)
 	if err != nil {
 		t.Error(err)
 	}
-}
-
-func TestCreated(t *testing.T) {
-	res := [][]string{}
-	for i := 0; i < 99; i++ {
-		res = append(res, []string{"直播ID", "用户ID", "用户姓名", "观看次数", "观看时长(秒)", "入会时间", "退会时间"})
-	}
-	//err := excelUtils.FlushCreateExcel(out, outFileName, "Sheet1", res, titleNum)
-	err := excelUtils.CreateExcel(out, outFileName, "Sheet1", res, titleNum, true)
+	data, err := excelFile.GetExcelSheetData()
 	if err != nil {
 		t.Error(err)
 	}
+	fmt.Println(data)
 }

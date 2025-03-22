@@ -27,28 +27,6 @@ func GetExcelAppointIndexData(filePaths, sheetName, title string, titleNum int) 
 	return ConvertToMapOne(rows, firstNum, titleNum, appointNum)
 }
 
-// 读取带有唯一索引的数据
-//
-// 按照序号为key key行数据为value 存储到数组切片中
-//
-// filePaths excel文件路径
-//
-// sheetName 工作表名称 如果为空则默认读取第一个工作表
-//
-// titleNum 表头数量 表头不能为0 默认为3
-func GetExcelIndexData(filePaths, sheetName string, titleNum int) (res map[string][]string, err error) {
-	rows, err := GetExcelSheetData(filePaths, sheetName)
-	if err != nil {
-		return nil, err
-	}
-	// 寻找表头中最大的一行值 并循环寻找表头
-	firstNum, appointNum, err := GetExcelTitleInfo(rows, "", titleNum)
-	if err != nil {
-		return nil, err
-	}
-	return ConvertToMapOne(rows, firstNum, titleNum, appointNum)
-}
-
 // 读取自定义数据表格 指定表头可以不是唯一键
 //
 // 给定一个数据表 指定以那一列为固定表头长度 指定以哪一个表头名称为索引构建数据
