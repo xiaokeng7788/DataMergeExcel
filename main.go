@@ -218,3 +218,30 @@ func ConvertToMultipleDimensions(data [][]string, firstNum, titleNum, appointNum
 	}
 	return response, header, nil
 }
+
+// 方便快速使用提供的指定文件路径获取表格数据
+func GetExcelAppointIndexRepeatData(filePaths, sheetName, title string, titleNum int) (res map[string][][]string, err error) {
+	excelFile, err := OpenExcelFile(filePaths)
+	if err != nil {
+		return nil, err
+	}
+	excelFile.SheetName = sheetName
+	err = excelFile.IsExitSheetName(false)
+	if err != nil {
+		return nil, err
+	}
+	data, err := excelFile.GetExcelSheetData()
+	if err != nil {
+		return nil, err
+	}
+	firstNum, appointNum, err := GetExcelTitleInfo(data, title, titleNum)
+	if err != nil {
+		return nil, err
+	}
+	dimension, header, err := ConvertToMultipleDimensions(data, firstNum, titleNum, appointNum, true)
+	if err != nil {
+		return nil, err
+	}
+	dimension["header"] = header
+	return dimension, nil
+}

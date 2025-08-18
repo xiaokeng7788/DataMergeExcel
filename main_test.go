@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-const dir string = "D:\\桌面\\test"
+const dir string = "D:\\桌面\\各种统计结果"
 const sheetName string = "Sheet1"
-const title string = "1"
+const title string = "社区医院"
 const titleNum int = 1
 const out string = "D:\\桌面"
 const outFileName string = "out.xlsx"
@@ -83,4 +83,14 @@ func TestCreatedExcel(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func TestGetExcelAppointIndexRepeatData(t *testing.T) {
+	res, err := GetExcelAppointIndexRepeatData(dir+"\\嘉定总数.xlsx", sheetName, title, titleNum)
+	if err != nil {
+		t.Error(err)
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println(res)
 }
