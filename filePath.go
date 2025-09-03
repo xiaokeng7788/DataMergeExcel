@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/xuri/excelize/v2"
 	"os"
+	"path/filepath"
 )
 
 // 判断路径是否存在
@@ -42,5 +43,15 @@ func (e *Excel) CreatedExcelPath() error {
 	if err := e.File.Close(); err != nil {
 		return err
 	}
+	return nil
+}
+
+// 将一个新的excel实例 按照路径获取文件
+func (e *Excel) OpenExcelFile() error {
+	excelFile, err := OpenExcelFile(filepath.Join(e.FilePath, e.FileName))
+	if err != nil {
+		return err
+	}
+	e.File = excelFile.File
 	return nil
 }

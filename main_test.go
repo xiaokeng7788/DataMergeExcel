@@ -1,96 +1,73 @@
 package dataMergeExcel
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/xiaokeng7788/DataMergeExcel/excelUtils"
 	"testing"
 )
 
 const dir string = "D:\\桌面\\各种统计结果"
-const sheetName string = "Sheet1"
-const title string = "社区医院"
+const sheetName string = "Sheet2"
+const title string = "1"
 const titleNum int = 1
-const out string = "D:\\桌面"
+const out string = "D:\\桌面\\main"
 const outFileName string = "out.xlsx"
 
-func TestMainTest(t *testing.T) {
-	excelFile, err := OpenExcelFile(dir + "\\13.xlsx")
-	if err != nil {
-		t.Error(err)
-	}
-	excelFile.SheetName = sheetName
-	err = excelFile.IsExitSheetName(false)
-	if err != nil {
-		t.Error(err)
-	}
-	data, err := excelFile.GetExcelSheetData()
-	if err != nil {
-		t.Error(err)
-	}
-	firstNum, appointNum, err := GetExcelTitleInfo(data, title, titleNum)
-	if err != nil {
-		t.Error(err)
-	}
-	res, _, err := ConvertToOneDimension(data, firstNum, titleNum, appointNum, true)
-	if err != nil {
-		t.Error(err)
-	}
-	excelFile2, err := OpenExcelFile(dir + "\\12.xlsx")
-	if err != nil {
-		t.Error(err)
-	}
-	excelFile2.SheetName = sheetName
-	err = excelFile2.IsExitSheetName(false)
-	if err != nil {
-		t.Error(err)
-	}
-	data2, err := excelFile2.GetExcelSheetData()
-	if err != nil {
-		t.Error(err)
-	}
-	firstNum2, appointNum2, err := GetExcelTitleInfo(data, title, titleNum)
-	if err != nil {
-		t.Error(err)
-	}
-	res2, _, err := ConvertToOneDimension(data2, firstNum2, titleNum, appointNum2, true)
-	if err != nil {
-		t.Error(err)
-	}
-	excel := excelUtils.MergeMuchExcelOneIndexExcel(res, res2)
-	fmt.Println(excel)
-}
-
+// 测试获取数据是否正常
 func TestCreatedExcel(t *testing.T) {
-	res := make([][]string, 0)
-	row := []string{"1", "2", "3"}
-	res = append(res, row)
-	res = append(res, row)
-	res = append(res, row)
 	excel := NewCreateExcel()
-	excel.SheetName = sheetName
-	excel.OutPath = out
-	excel.OutFile = outFileName
-	excel.TitleNum = titleNum
-	err := excel.IsExitSheetName(true)
+	excel.SetImportConfig(dir, "年龄段统计.xlsx")
+	excel.SetSheetConfig(sheetName, title)
+	err := excel.OpenExcelFile()
 	if err != nil {
 		t.Error(err)
-	}
-	err = excel.WriteExcelSheet(res)
-	if err != nil {
-		t.Error(err)
-	}
-	err = excel.CreatedExcelPath()
-	if err != nil {
-		t.Error(err)
-	}
-}
-
-func TestGetExcelAppointIndexRepeatData(t *testing.T) {
-	res, err := GetExcelAppointIndexRepeatData(dir+"\\嘉定总数.xlsx", sheetName, title, titleNum)
-	if err != nil {
-		t.Error(err)
-		fmt.Println(err.Error())
 		return
 	}
-	fmt.Println(res)
+	data, err := excel.GetExcelSheetData()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for i, datum := range data {
+		fmt.Println(i, datum)
+	}
+	//	输出文件流
+	buffer, err := excel.ExportExcelBuffer()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	stream, err := OpenExcelStream(bytes.NewReader(buffer))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	stream.SetSheetConfig(sheetName, title)
+	data, err = stream.GetExcelSheetData()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for i, datum := range data {
+		fmt.Println(i, datum)
+	}
+}
+
+func TestGetExcelAppointIndexRepeatData2(t *testing.T) {
+	var rr = make([][]string, 0)
+	err := json.Unmarshal([]byte(`[["出生日期","家庭医生工号","居住地址","居民姓名","联系电话","身份证号","本人手机号","签约机构编码","性别","签约时间","签约状态","续约时间","续约告知方式","签约开始时间(续约时间)"],["1977-12-18","112","新建一路1599弄15号703室","卢荣刚","","342622197712681216","13858077252","42505437031011411B1001","男","2024-09-20","1","","223","2025-09-21 00:00:00"]]`), &rr)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	excel := NewCreateExcel()
+	excel.SetExportConfig(out, outFileName)
+	excel.SetSheetConfig(sheetName, title)
+	err = excel.WriteExcelSheet(rr)
+	err = excel.ExportExcel()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/xuri/excelize/v2"
+	"path/filepath"
 	"strconv"
 )
 
@@ -15,13 +16,16 @@ type Excel struct {
 	File      *excelize.File
 	SheetName string // 工作表名
 	Title     string // 表头 确定以那一列为索引
-	TitleNum  int    // 表头长度
 	FilePath  string // 原始文件路径
+	FileName  string // 原始文件名
 	OutPath   string // 输出文件路径
 	OutFile   string // 输出文件名
+	TitleNum  int    // 表头长度 以此确定表头的最大长度
 }
 
 // 判断表中是否有指定的工作簿 如果没有是否强制创建一个默认工作簿 默认工作簿名称为Sheet1
+//
+// force 是否强制创建工作簿
 func (e *Excel) IsExitSheetName(force bool) error {
 	sheetList := e.File.GetSheetList()
 	for _, v := range sheetList {
@@ -49,31 +53,96 @@ func NewCreateExcel() *Excel {
 	return &Excel{File: excelize.NewFile()}
 }
 
+// 为创建新的可执行文件配置一些导出地址信息
+//
+// OutPath: 输出文件路径
+// OutFileName: 输出文件名
+func (e *Excel) SetExportConfig(OutPath, OutFileName string) {
+	if OutPath != "" && e.OutPath != OutPath {
+		e.OutPath = OutPath
+	}
+	if OutFileName != "" && e.OutFile != OutFileName {
+		e.OutFile = OutFileName
+	}
+}
+
+// 为创建新的可执行文件配置一些导入地址信息
+//
+// FilePath: 原始文件路径
+// FileName: 原始文件名
+func (e *Excel) SetImportConfig(FilePath, FileName string) {
+	if FilePath != "" && e.FilePath != FilePath {
+		e.FilePath = FilePath
+	}
+	if FileName != "" && e.FileName != FileName {
+		e.FileName = FileName
+	}
+}
+
+// 为创建新的可执行文件配置一些表格信息
+//
+// SheetName: 工作表名称
+// Title: 表头名称
+func (e *Excel) SetSheetConfig(SheetName, Title string) {
+	if SheetName != "" && e.SheetName != SheetName && SheetName != DefaultSheetName {
+		e.File.NewSheet(SheetName)
+		e.SheetName = SheetName
+	} else {
+		e.SheetName = DefaultSheetName
+	}
+	if Title != "" && e.Title != Title {
+		e.Title = Title
+	}
+}
+
+// 判断导出的文件所需的参数是否满足
+func (e *Excel) IsExportConfig() error {
+	if e.File == nil {
+		return errors.New("暂未初始化可执行文件")
+	}
+	if e.OutPath == "" {
+		return errors.New("导出文件路径不能为空")
+	}
+	if e.OutFile == "" {
+		return errors.New("导出文件名不能为空")
+	}
+	if e.SheetName == "" {
+		return errors.New("工作表名称不能为空")
+	}
+	if !PathExists(filepath.Join(e.OutPath, e.OutFile)) {
+		return errors.New("导出文件路径不存在，请先创建该路径")
+	}
+	return nil
+}
+
 // 读取工作表的数据
 func (e *Excel) GetExcelSheetData() ([][]string, error) {
 	if e.File == nil {
 		return nil, errors.New("暂无可执行文件")
 	}
-	// 获取所有表格名称
+	// 判断工作簿中是否有
 	err := e.IsExitSheetName(false)
 	if err != nil {
 		return nil, err
 	}
 	// 获取 sheetName 上所有单元格
 	rows, err := e.File.GetRows(e.SheetName)
-	if err := e.File.Close(); err != nil {
+	if err != nil {
+		return nil, err
+	}
+	if err = e.File.Close(); err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-// 将数据写入表格
+// 将数据写入表格并导出文件
 func (e *Excel) WriteExcelSheet(data [][]string) error {
 	if e.File == nil {
 		return errors.New("暂无可执行文件")
 	}
 	for rowIndex, item := range data {
-		cell, err := excelize.CoordinatesToCellName(1, rowIndex+e.TitleNum) // 后续表头也需要写入
+		cell, err := excelize.CoordinatesToCellName(1, rowIndex+1)
 		if err != nil {
 			return err
 		}
@@ -97,7 +166,7 @@ func (e *Excel) WriteExcelSheetStream(data [][]string) error {
 		return err
 	}
 	for rowIndex, item := range data {
-		cell, err := excelize.CoordinatesToCellName(1, rowIndex)
+		cell, err := excelize.CoordinatesToCellName(1, rowIndex+1)
 		if err != nil {
 			return err
 		}
@@ -110,8 +179,19 @@ func (e *Excel) WriteExcelSheetStream(data [][]string) error {
 		}
 	}
 	// 关闭流式写入器
-	if err := streamWriter.Flush(); err != nil {
+	if err = streamWriter.Flush(); err != nil {
 		return err
+	}
+	return nil
+}
+
+// 将表格信息导出到文件
+func (e *Excel) ExportExcel() error {
+	if err := e.IsExportConfig(); err != nil {
+		return err
+	}
+	if err := e.File.SaveAs(filepath.Join(e.OutPath, e.OutFile)); err != nil {
+		return fmt.Errorf("文件保存失败，错误原因为: %v, 请重试", err.Error())
 	}
 	return nil
 }
@@ -220,16 +300,14 @@ func ConvertToMultipleDimensions(data [][]string, firstNum, titleNum, appointNum
 }
 
 // 方便快速使用提供的指定文件路径获取表格数据
-func GetExcelAppointIndexRepeatData(filePaths, sheetName, title string, titleNum int) (res map[string][][]string, err error) {
-	excelFile, err := OpenExcelFile(filePaths)
+func GetExcelAppointIndexRepeatData(filePaths, fileName, sheetName, title string, titleNum int) (res map[string][][]string, err error) {
+	excelFile := NewCreateExcel()
+	excelFile.SetImportConfig(filePaths, fileName)
+	err = excelFile.OpenExcelFile()
 	if err != nil {
 		return nil, err
 	}
-	excelFile.SheetName = sheetName
-	err = excelFile.IsExitSheetName(false)
-	if err != nil {
-		return nil, err
-	}
+	excelFile.SetSheetConfig(sheetName, title)
 	data, err := excelFile.GetExcelSheetData()
 	if err != nil {
 		return nil, err
